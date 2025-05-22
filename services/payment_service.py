@@ -6,6 +6,7 @@ from utils.category_mapper import map_category
 from utils.currency import CurrencyConverter
 from core.config import settings
 from models.payment import Payment
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +20,16 @@ class PaymentService:
         self.converter: CurrencyConverter = CurrencyConverter()
         logger.info(f"PaymentService initialized with file: {self.file_path}")
 
-    def process_payments(self, target_currency: str = "USD") -> List[Payment]:
-        logger.info(f"Start processing payments. Target currency: {target_currency}")
+    def process_payments(self, target_currency: str = "USD", date_from: Optional[str] = None, date_to: Optional[str] = None) -> List[Payment]:
+        logger.info(f"Start processing payments. Target currency: {target_currency}, date_from: {date_from}, date_to: {date_to}")
         self.processor.read_csv()
         required_columns: List[str] = ["id", "Дата", "Статус", "Сумма", "Валюта", "Статья", "Подстатья"]
-        processed_data: pd.DataFrame = self.processor.prepare_data(required_columns=required_columns, status=settings.PAYMENT_SUCCESS_STATUS)
+        processed_data: pd.DataFrame = self.processor.prepare_data(
+            required_columns=required_columns,
+            status=settings.PAYMENT_SUCCESS_STATUS,
+            date_from=date_from,
+            date_to=date_to
+        )
 
         # Категории
         article_columns: List[str] = [col for col in processed_data.columns if col.lower() in ["article", "статья"]]

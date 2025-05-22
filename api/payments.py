@@ -27,11 +27,14 @@ async def get_payments(
     file_path: Optional[str] = Query(None, description="Path to the CSV file with payment data"),
     format: Optional[str] = Query("json", description="Response format (json or csv)"),
     currency: Optional[str] = Query("USD", description="Currency for payment amounts"),
+    date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD) for filtering payments"),
+    date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD) for filtering payments"),
     _: None = Depends(verify_api_key)
 ) -> List[Payment]:
     """
     Process payment data from a CSV file and return it in the specified format and currency.
     Если file_path не передан, используется путь из settings.PAYMENTS_FILE_PATH.
+    Фильтрация по дате: date_from/date_to в формате YYYY-MM-DD.
     """
     if not file_path:
         file_path = settings.PAYMENTS_FILE_PATH
@@ -45,7 +48,7 @@ async def get_payments(
     currency = currency.upper()
     try:
         service = PaymentService(file_path)
-        payments = service.process_payments(target_currency=currency)
+        payments = service.process_payments(target_currency=currency, date_from=date_from, date_to=date_to)
         if format == "json":
             return payments
         elif format == "csv":
