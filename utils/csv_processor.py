@@ -85,7 +85,7 @@ class CSVProcessor:
         logger.error(f"Status column not found in CSV. Available columns: {', '.join(self._data.columns)}")
         raise KeyError(f"Status column not found in CSV. Available columns: {', '.join(self._data.columns)}")
 
-    def prepare_data(self, required_columns: Optional[List[str]] = None, status: Optional[str] = None) -> DataFrame:
+    def prepare_data(self, required_columns: Optional[List[str]] = None, status: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None) -> DataFrame:
         """
         Prepare data for further processing.
         
@@ -96,10 +96,13 @@ class CSVProcessor:
         3. Converts date columns to datetime
         4. Selects only required columns if specified
         5. Фильтрует по статусу, если передан status
+        6. Фильтрует по дате, если переданы date_from/date_to
 
         Args:
             required_columns: List of columns to keep in the result
             status: Payment status to filter by (если None — не фильтровать)
+            date_from: Start date (YYYY-MM-DD) for filtering
+            date_to: End date (YYYY-MM-DD) for filtering
 
         Returns:
             Processed DataFrame or dictionary of DataFrames
@@ -138,13 +141,18 @@ class CSVProcessor:
             col for col in processed_data.columns
             if any(date_keyword in col.lower() for date_keyword in ["date", "дата", "time", "время"])
         ]
-        
         for col in date_columns:
             try:
                 processed_data[col] = pd.to_datetime(processed_data[col], errors='coerce', dayfirst=True)
             except Exception as e:
                 logger.warning(f"Failed to parse dates in column {col}: {e}")
-        
+        # Фильтрация по дате
+        if (date_from or date_to) and date_columns:
+            date_col = date_columns[0]
+            if date_from:
+                processed_data = processed_data[processed_data[date_col] >= pd.to_datetime(date_from)]
+            if date_to:
+                processed_data = processed_data[processed_data[date_col] <= pd.to_datetime(date_to)]
         if required_columns:
             available_columns = [col for col in required_columns if col in processed_data.columns]
             if not available_columns:
