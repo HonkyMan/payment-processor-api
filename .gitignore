@@ -71,3 +71,4 @@ coverage.xml
 *.csv
 data/*.csv
 data/category_mapping.json
+data/sql/*.sql
