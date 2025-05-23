@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException, Response, Header, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends
 import logging
 from typing import Optional
 from fastapi.responses import StreamingResponse
@@ -9,15 +9,10 @@ from models.db_query_result_model import DBQueryResult
 from models.format_enum import FormatEnum
 from utils.currency.constants import Currency
 from utils.formatters import format_data_response
-from core.config import settings
+from core.auth import verify_api_key
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-def verify_api_key(x_api_key: str = Header(...)) -> None:
-    if x_api_key != settings.API_KEY:
-        logger.warning(f"Unauthorized access attempt with key: {x_api_key}")
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 @router.get("/db-query", response_model=list[DBQueryResult])
 async def external_query(
