@@ -23,50 +23,52 @@ class CurrencyCache:
             db_path: Path to the SQLite database file
         """
         self.db_path = db_path
+        self.connection = None
         self._init_db()
+        self._get_connection()
+            
+    def _get_connection(self) -> sqlite3.Connection:
+        """Получить активное соединение или создать новое"""
+        if self.connection is None:
+            self.connection = sqlite3.connect(self.db_path)
+            self.connection.row_factory = sqlite3.Row
+        return self.connection
     
     def _init_db(self):
         """Initialize the database for caching exchange rates."""
         db_dir = os.path.dirname(self.db_path)
         if db_dir:
             os.makedirs(db_dir, exist_ok=True)
-        db_exists = os.path.exists(self.db_path)
-        if not db_exists:
-            logger.info(f"Currency cache DB will be created: {self.db_path}")
-            with sqlite3.connect(self.db_path) as conn:
-                conn.execute('''
-                    CREATE TABLE IF NOT EXISTS currency_rates (
-                        base_currency TEXT,
-                        date TEXT,
-                        rates TEXT,
-                        timestamp TEXT,
-                        PRIMARY KEY (base_currency, date)
-                    )
-                ''')
-                conn.commit()
-        else:
-            logger.info(f"Currency cache DB already exists: {self.db_path}")
-            # Проверяем, что таблица currency_rates есть
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute("""
-                    SELECT name FROM sqlite_master WHERE type='table' AND name='currency_rates';
-                """)
-                result = cursor.fetchone()
-                if result:
-                    logger.info("Table 'currency_rates' exists in DB.")
-                else:
-                    logger.warning("Table 'currency_rates' NOT found in DB. Creating table...")
-                    conn.execute('''
-                        CREATE TABLE IF NOT EXISTS currency_rates (
-                            base_currency TEXT,
-                            date TEXT,
-                            rates TEXT,
-                            timestamp TEXT,
-                            PRIMARY KEY (base_currency, date)
-                        )
-                    ''')
-                    conn.commit()
-                    logger.info("Table 'currency_rates' created in existing DB.")
+            
+        try:
+            conn = self._get_connection()
+            
+            # Создаем таблицу, если её нет
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS currency_rates (
+                    base_currency TEXT,
+                    date TEXT,
+                    rates TEXT,
+                    timestamp TEXT,
+                    PRIMARY KEY (base_currency, date)
+                )
+            ''')
+            conn.commit()
+            
+            # Проверяем, что таблица создана
+            cursor = conn.execute("""
+                SELECT name FROM sqlite_master WHERE type='table' AND name='currency_rates';
+            """)
+            if cursor.fetchone():
+                logger.info("Table 'currency_rates' exists in DB.")
+            else:
+                logger.warning("Failed to create currency_rates table!")
+                
+        except Exception as e:
+            logger.error(f"Error initializing database: {e}")
+            if self.connection:
+                self.connection.close()
+                self.connection = None
     
     def get_cached_rates(self, base_currency: str, 
                          request_date: date) -> Optional[Dict[str, float]]:
@@ -84,21 +86,23 @@ class CurrencyCache:
         date_str = request_date.strftime("%Y-%m-%d")
         
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.execute(
-                    "SELECT rates FROM currency_rates WHERE base_currency = ? AND date = ?",
-                    (base_currency.lower(), date_str)
-                )
-                row = cursor.fetchone()
-                
-                if row:
-                    rates = json.loads(row['rates'])
-                    return rates
+            conn = self._get_connection()
+            cursor = conn.execute(
+                "SELECT rates FROM currency_rates WHERE base_currency = ? AND date = ?",
+                (base_currency.lower(), date_str)
+            )
+            row = cursor.fetchone()
+            
+            if row:
+                rates = json.loads(row['rates'])
+                return rates
             
             return None
         except Exception as e:
             logger.error(f"Error retrieving cached rates: {e}")
+            if self.connection:
+                self.connection.close()
+                self.connection = None
             return None
     
     def cache_rates(self, base_currency: str, rates: Dict[str, float], 
@@ -114,20 +118,23 @@ class CurrencyCache:
         date_str = request_date.strftime("%Y-%m-%d")
         
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.execute(
-                    """
-                    INSERT OR REPLACE INTO currency_rates (base_currency, date, rates, timestamp)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (
-                        base_currency.lower(),
-                        date_str,
-                        json.dumps(rates),
-                        datetime.now().isoformat()
-                    )
+            conn = self._get_connection()
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO currency_rates (base_currency, date, rates, timestamp)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    base_currency.lower(),
+                    date_str,
+                    json.dumps(rates),
+                    datetime.now().isoformat()
                 )
-                conn.commit()
-                logger.debug(f"Cached rates for {base_currency} on {date_str}")
+            )
+            conn.commit()
+            logger.debug(f"Cached rates for {base_currency} on {date_str}")
         except Exception as e:
             logger.error(f"Error caching rates: {e}")
+            if self.connection:
+                self.connection.close()
+                self.connection = None

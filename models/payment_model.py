@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from utils.currency.constants import Currency
 
 class Payment(BaseModel):
     """
@@ -10,7 +11,7 @@ class Payment(BaseModel):
     date: datetime
     status: str
     amount: float
-    currency: str
+    currency: Currency
     article: str
     sub_article: str
     category: Optional[str] = None

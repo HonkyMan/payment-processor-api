@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     
     # API ключ для авторизации
     API_KEY: str = os.getenv("API_KEY", "changeme")
+    # URL для подключения к удалённой БД
+    DATABASE_URL: str = os.getenv("DATABASE_URL")
+    # Папка со SQL-скриптами
+    SQL_DIR: str = os.getenv("SQL_DIR", "sql")
 
     class Config:
         env_file = ".env"
