@@ -12,6 +12,7 @@ from datetime import date
 
 from core.config import settings
 from models.financial_stats_model import FinancialStatsResult
+from utils.load_sql_file import load_sql_file
 from utils.currency import CurrencyConverter
 from utils.currency.constants import Currency, ConversionResult
 
@@ -20,7 +21,7 @@ SUB_DIR = "/financial"
 
 class FinancialStatsService:
     """
-    Сервис для выполнения внешних SQL-запросов из файлов.
+    Сервис для выполнения внешних SQL-запросов из файлов для получения финансовой статистики.
     """
     def __init__(self, database_url: str = None, sql_dir: str = None):
         self.database_url = database_url or settings.DATABASE_URL
@@ -45,32 +46,21 @@ class FinancialStatsService:
         except Exception:
             return None
 
-    def _load_sql_file(self, query_name: str) -> str:
-        sql_path = os.path.join(self.sql_dir, f"{query_name}.sql")
-        if not os.path.exists(sql_path):
-            logger.warning(f"SQL script not found: {sql_path}")
-            raise FileNotFoundError(f"SQL script '{query_name}.sql' not found")
-        try:
-            with open(sql_path, encoding="utf-8") as f:
-                sql_text = f.read()
-                logger.info(f"Loaded SQL script: {sql_path}")
-                return sql_text
-        except Exception as e:
-            logger.error(f"Error reading SQL script {sql_path}: {e}")
-            raise
-
     async def run_query(self, query_name: str, date_from: str = None, date_to: str = None, currency: str = "USD") -> List[FinancialStatsResult]:
-        sql_text = self._load_sql_file(query_name)
+        query = load_sql_file(self.sql_dir, query_name)
+
         params = {
             "date_from": self._parse_date(date_from) if date_from else None,
             "date_to": self._parse_date(date_to) if date_to else None
         }
+
         financial_data: List[FinancialStatsResult] = []
         target_currency = (currency or "USD").upper()
+
         try:
             async with self.session_factory() as session:
                 try:
-                    result = await session.execute(sqlalchemy.text(sql_text), params)
+                    result = await session.execute(sqlalchemy.text(query), params)
                     records = [dict(r) for r in result.mappings()]
                     logger.info(f"Executed query '{query_name}', returned {len(records)} rows")
                     for row in records:
