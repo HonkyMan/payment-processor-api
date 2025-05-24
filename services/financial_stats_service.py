@@ -16,14 +16,15 @@ from utils.currency import CurrencyConverter
 from utils.currency.constants import Currency, ConversionResult
 
 logger = logging.getLogger(__name__)
+SUB_DIR = "/financial"
 
-class ExternalQueryService:
+class FinancialStatsService:
     """
     Сервис для выполнения внешних SQL-запросов из файлов.
     """
     def __init__(self, database_url: str = None, sql_dir: str = None):
         self.database_url = database_url or settings.DATABASE_URL
-        self.sql_dir = sql_dir or settings.SQL_DIR
+        self.sql_dir = sql_dir or settings.SQL_DIR + SUB_DIR
         self.engine: AsyncEngine = create_async_engine(self.database_url, echo=False)
         self.session_factory = sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
         self.converter = CurrencyConverter()

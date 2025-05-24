@@ -4,8 +4,8 @@ from typing import Optional
 from fastapi.responses import StreamingResponse
 import io
 
-from services.external_query_service import ExternalQueryService
-from models.db_query_result_model import DBQueryResult
+from services.financial_stats_service import FinancialStatsService
+from models.financial_stats_model import FinancialStatsResult
 from models.format_enum import FormatEnum
 from utils.currency.constants import Currency
 from utils.formatters import format_data_response
@@ -14,7 +14,7 @@ from core.auth import verify_api_key
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/db-query", response_model=list[DBQueryResult])
+@router.get("/financial-stats", response_model=list[FinancialStatsResult])
 async def external_query(
     query_name: str = Query(..., description="Имя SQL-скрипта без расширения"),
     format: FormatEnum = Query(FormatEnum.json, description="Response format: json or csv"),
@@ -27,7 +27,7 @@ async def external_query(
     Выполнить SQL-скрипт из папки SQL_DIR по имени и вернуть результат в формате json или csv.
     """
     try:
-        async with ExternalQueryService() as service:
+        async with FinancialStatsService() as service:
             data = await service.run_query(
                 query_name,
                 date_from,
