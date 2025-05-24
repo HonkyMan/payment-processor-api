@@ -1,45 +1,50 @@
-# Payment Processor API
+# BilBet Payment & Analytics API
 
 ## Описание
 
-REST API для обработки CSV-файлов с платежами, конвертации валют, маппинга категорий и выгрузки данных в формате JSON или CSV.
+Асинхронный REST API для работы с платежами, аналитикой и пользовательской активностью. Поддерживает загрузку и обработку CSV-файлов, выполнение SQL-отчетов, конвертацию валют, бизнес-маппинг категорий, а также выгрузку данных в форматах JSON и CSV.
 
-- Поддержка загрузки и обработки платежей из CSV
+**Возможности:**
+- Загрузка и обработка платежей из CSV
 - Конвертация валют с кэшированием курсов (SQLite)
 - Маппинг "Статья" + "Подстатья" в бизнес-категории
+- Выполнение внешних SQL-отчетов по финансовым и пользовательским метрикам
+- Эндпоинты для статистики активности пользователей
 - Гибкая настройка через .env
-- Асинхронные эндпоинты для работы с внешними SQL-запросами
-- Единый стиль сервисов (классы, а не статические методы)
-- Валидация валюты через Enum
+- Асинхронная работа с PostgreSQL через SQLAlchemy
+- Валидация валюты и формата ответа через Enum
+- Единый стиль сервисов (только классы, поддержка контекстных менеджеров)
 - Эндпоинты для healthcheck и получения платежей
 
 ## Быстрый старт
 
-1. Клонируйте репозиторий и перейдите в папку src:
+1. Клонируйте репозиторий и перейдите в папку src/app:
    ```sh
-   cd src
+   cd src/app
    ```
 2. Установите зависимости:
    ```sh
-   pip install -r app/requirements.txt
+   pip install -r requirements.txt
    ```
 3. Запустите сервер:
    ```sh
-   uvicorn app.main:app --reload
+   uvicorn main:app --reload
    ```
 4. Откройте документацию: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ## Основные эндпоинты
 
 - `GET /api/v1/payments` — получить обработанные платежи (json/csv, с конвертацией валют)
-- `GET /api/v1/db-query` — выполнить SQL-запрос из папки sql/ с поддержкой фильтрации по дате и валюте (json/csv)
+- `GET /api/v1/financial-stats` — финансовая аналитика по SQL-отчетам (json/csv, фильтрация по дате и валюте)
+- `GET /api/v1/user-activity` — статистика активности пользователей (json/csv, фильтрация по дате)
 - `GET /api/v1/healthcheck` — проверка работоспособности
 
-## Пример запроса
+## Примеры запросов
 
 ```sh
 curl "http://localhost:8000/api/v1/payments?format=json&currency=USD"
-curl "http://localhost:8000/api/v1/db-query?query_name=stakes_amount_sport&currency=EUR&date_from=2024-01-01&date_to=2024-01-31"
+curl "http://localhost:8000/api/v1/financial-stats?query_name=stakes_sport_amount&currency=EUR&date_from=2024-01-01&date_to=2024-01-31"
+curl "http://localhost:8000/api/v1/user-activity?query_name=active_users&format=csv&date_from=2024-01-01&date_to=2024-01-31"
 ```
 
 ## Переменные окружения (.env)
@@ -51,17 +56,17 @@ curl "http://localhost:8000/api/v1/db-query?query_name=stakes_amount_sport&curre
 - `EXCHANGE_RATE_CACHE_TTL` — время жизни кэша курсов валют (часы)
 - `PAYMENT_SUCCESS_STATUS` — статус успешного платежа (например, "Оплачено")
 - `DATABASE_URL` — строка подключения к PostgreSQL
-- `SQL_DIR` — папка с SQL-скриптами
+- `SQL_DIR` — папка с SQL-скриптами (например, data/sql)
 - `API_KEY` — ключ для авторизации
 
 ## Структура проекта
 
-- `api/` — роуты FastAPI
-- `services/` — бизнес-логика (теперь только классы, поддержка асинхронности)
-- `models/` — pydantic-модели и enum
-- `utils/` — утилиты (конвертер валют, маппер категорий, обработка CSV)
-- `data/` — файлы данных (csv, json, db, sql)
-- `core/` — конфиг и настройки
+- `api/` — роуты FastAPI (payments, financial, activities, api)
+- `services/` — бизнес-логика (payment_service, financial_stats_service, user_activity_service)
+- `models/` — pydantic-модели и enum (payment_model, financial_stats_model, user_activity_model, format_enum)
+- `utils/` — утилиты (конвертер валют, маппер категорий, обработка CSV, форматтеры, загрузка SQL)
+- `data/` — файлы данных (csv, json, db, sql-скрипты)
+- `core/` — конфиг и авторизация
 
 ## Особенности архитектуры
 
@@ -70,3 +75,4 @@ curl "http://localhost:8000/api/v1/db-query?query_name=stakes_amount_sport&curre
 - Валидация валюты и формата ответа через Enum
 - Асинхронная работа с базой данных и SQLAlchemy
 - Чистая структура и единый стиль кода
+- SQL-запросы вынесены в отдельные файлы для прозрачности и удобства сопровождения

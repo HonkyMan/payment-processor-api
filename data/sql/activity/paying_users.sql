@@ -24,6 +24,6 @@ SELECT
     paying_users active_users
 FROM deposit_users
 WHERE
-    (cast(:date_from as date) is null or "date" >= cast(:date_from as date))
-    and (cast(:date_to as date) is null or "date" <= cast(:date_to as date))
+    (cast(:date_from as date) is null or deposit_date >= cast(:date_from as date))
+    and (cast(:date_to as date) is null or deposit_date <= cast(:date_to as date))
 ORDER BY deposit_date ASC;

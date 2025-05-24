@@ -87,32 +87,32 @@ withdrawal_users as (
 ),
 daily_active_users as (
     select 
-        "date",
-        sum(users) as active_users
+        active_date,
+        sum(active_users) as active_users
     from (
-        select bet_date "date", active_users users from sport_bets
+        select bet_date active_date, active_users from sport_bets
         union all
-        select bet_date "date", active_users users from casino_st_bets
+        select bet_date active_date, active_users from casino_st_bets
         union all
-        select bet_date "date", active_users users from casino_op_bets
+        select bet_date active_date, active_users from casino_op_bets
         union all
-        select bet_date "date", active_users users from casino_cb_bets
+        select bet_date active_date, active_users from casino_cb_bets
         union all
-        select bet_date "date", active_users users from casino_io_bets
+        select bet_date active_date, active_users from casino_io_bets
         union all
-        select bet_date "date", active_users users from casino_ngs_bets
+        select bet_date active_date, active_users from casino_ngs_bets
         union all
-        select deposit_date "date", active_users users from deposit_users
+        select deposit_date active_date, active_users from deposit_users
         union all
-        select withdrawal_date "date", active_users users from withdrawal_users
+        select withdrawal_date active_date, active_users from withdrawal_users
     ) as daily_active
     group by 1
 )
 select 
-    "date",
+    active_date as "date",
     active_users
 from daily_active_users
 WHERE
-    (cast(:date_from as date) is null or "date" >= cast(:date_from as date))
-    and (cast(:date_to as date) is null or "date" <= cast(:date_to as date))
-order by "date" asc;
+    (cast(:date_from as date) is null or active_date >= cast(:date_from as date))
+    and (cast(:date_to as date) is null or active_date <= cast(:date_to as date))
+order by active_date asc;
