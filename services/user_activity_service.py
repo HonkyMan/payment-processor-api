@@ -20,7 +20,7 @@ class UserActivityService:
     def __init__(self, database_url: str = None, sql_dir: str = None):
         self.database_url = database_url or settings.DATABASE_URL
         self.sql_dir = sql_dir or settings.SQL_DIR + SUB_DIR
-        self.engine: AsyncEngine = create_async_engine(self.database_url, echo=False)
+        self.engine: AsyncEngine = create_async_engine(self.database_url, echo=False, connect_args={"command_timeout": 600})
         self.session_factory = sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
 
     def _parse_date(self, s: str) -> date:
@@ -55,7 +55,7 @@ class UserActivityService:
                 for row in records:
                     activity_data.append(ActiveUsersResult(
                         date=row["date"],
-                        active_users=int(row["active_users"])
+                        users=int(row["users"])
                     ))
             except Exception as e:
                 logger.error(f"Database error executing query '{query_name}': {e}")

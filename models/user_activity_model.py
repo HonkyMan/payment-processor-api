@@ -7,4 +7,4 @@ class ActiveUsersResult(BaseModel):
     Model for the result of the active playing and paying users query.
     """
     date: date
-    active_users: int
+    users: int
